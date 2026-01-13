@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RGB CHROMATIC CALIBRATOR</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --black: #0a0a0a;
+            --panel-bg: #1a1a1a;
+            --panel-border: #2a2a2a;
+            --phosphor-green: #00ff41;
+            --phosphor-dim: #00aa2a;
+            --amber: #ffb000;
+            --red-alert: #ff0044;
+            --display-bg: #050505;
+            --metal: #3a3a3a;
+            --screw: #5a5a5a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+
+        @keyframes glow-pulse {
+            0%, 100% {
+                text-shadow: 0 0 10px var(--phosphor-green), 0 0 20px var(--phosphor-green);
+            }
+            50% {
+                text-shadow: 0 0 15px var(--phosphor-green), 0 0 30px var(--phosphor-green), 0 0 40px var(--phosphor-green);
+            }
+        }
+
+        @keyframes indicator-blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0.3; }
+        }
+
+        @keyframes slide-in {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background:
+                repeating-linear-gradient(
+                    0deg,
+                    var(--black) 0px,
+                    var(--black) 2px,
+                    #0f0f0f 2px,
+                    #0f0f0f 4px
+                );
+            color: var(--phosphor-green);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 40px 20px;
+            gap: 0;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: slide-in 0.6s ease-out;
+        }
+
+        .header h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.8rem;
+            font-weight: 900;
+            letter-spacing: 0.3em;
+            color: var(--phosphor-green);
+            text-shadow:
+                0 0 10px var(--phosphor-green),
+                0 0 20px var(--phosphor-green),
+                0 0 30px var(--phosphor-green);
+            margin-bottom: 10px;
+            animation: glow-pulse 2s ease-in-out infinite;
+        }
+
+        .header .subtitle {
+            font-size: 0.9rem;
+            letter-spacing: 0.5em;
+            color: var(--phosphor-dim);
+            text-transform: uppercase;
+        }
+
+        .equipment-panel {
+            background: linear-gradient(145deg, #1f1f1f, #151515);
+            border: 3px solid var(--metal);
+            border-radius: 20px;
+            padding: 50px;
+            box-shadow:
+                0 20px 60px rgba(0, 0, 0, 0.8),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.5);
+            position: relative;
+            max-width: 1000px;
+            width: 100%;
+            animation: slide-in 0.8s ease-out 0.2s backwards;
+        }
+
+        /* Decorative screws */
+        .equipment-panel::before,
+        .equipment-panel::after {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: radial-gradient(circle, var(--screw) 0%, var(--metal) 70%);
+            border-radius: 50%;
+            box-shadow:
+                inset 0 1px 2px rgba(0, 0, 0, 0.5),
+                0 1px 1px rgba(255, 255, 255, 0.1);
+        }
+
+        .equipment-panel::before {
+            top: 20px;
+            left: 20px;
+        }
+
+        .equipment-panel::after {
+            top: 20px;
+            right: 20px;
+        }
+
+        .screw-bottom-left,
+        .screw-bottom-right {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: radial-gradient(circle, var(--screw) 0%, var(--metal) 70%);
+            border-radius: 50%;
+            box-shadow:
+                inset 0 1px 2px rgba(0, 0, 0, 0.5),
+                0 1px 1px rgba(255, 255, 255, 0.1);
+        }
+
+        .screw-bottom-left {
+            bottom: 20px;
+            left: 20px;
+        }
+
+        .screw-bottom-right {
+            bottom: 20px;
+            right: 20px;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 50px;
+            align-items: start;
+        }
+
+        .controls-section {
+            display: flex;
+            flex-direction: column;
+            gap: 35px;
+        }
+
+        .channel-control {
+            background: var(--display-bg);
+            border: 2px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.8);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .channel-control:hover {
+            border-color: var(--phosphor-dim);
+            box-shadow:
+                inset 0 2px 10px rgba(0, 0, 0, 0.8),
+                0 0 20px rgba(0, 255, 65, 0.2);
+        }
+
+        .channel-label {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: indicator-blink 1s ease-in-out infinite;
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        .indicator.red {
+            background: var(--red-alert);
+            color: var(--red-alert);
+        }
+
+        .indicator.green {
+            background: #00ff00;
+            color: #00ff00;
+        }
+
+        .indicator.blue {
+            background: #0066ff;
+            color: #0066ff;
+        }
+
+        .channel-label span {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+
+        .channel-label .channel-id {
+            margin-left: auto;
+            font-size: 0.75rem;
+            color: var(--phosphor-dim);
+            letter-spacing: 0.1em;
+        }
+
+        .fader-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .slider-container {
+            flex: 1;
+            position: relative;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 40px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-track {
+            height: 8px;
+            background: linear-gradient(to right, #000, var(--metal));
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
+        }
+
+        input[type="range"]::-moz-range-track {
+            height: 8px;
+            background: linear-gradient(to right, #000, var(--metal));
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 35px;
+            background: linear-gradient(145deg, var(--metal), #2a2a2a);
+            border: 2px solid var(--panel-border);
+            border-radius: 4px;
+            cursor: grab;
+            transition: all 0.2s ease;
+            box-shadow:
+                0 2px 5px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: linear-gradient(145deg, #4a4a4a, var(--metal));
+            box-shadow:
+                0 2px 8px rgba(0, 255, 65, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            box-shadow:
+                0 1px 3px rgba(0, 0, 0, 0.8),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 24px;
+            height: 35px;
+            background: linear-gradient(145deg, var(--metal), #2a2a2a);
+            border: 2px solid var(--panel-border);
+            border-radius: 4px;
+            cursor: grab;
+            transition: all 0.2s ease;
+            box-shadow:
+                0 2px 5px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            background: linear-gradient(145deg, #4a4a4a, var(--metal));
+            box-shadow:
+                0 2px 8px rgba(0, 255, 65, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        .value-display {
+            background: var(--black);
+            border: 2px solid var(--panel-border);
+            border-radius: 6px;
+            padding: 8px 16px;
+            min-width: 90px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .value-display::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(180deg, transparent 0%, rgba(0, 255, 65, 0.03) 50%, transparent 100%);
+            pointer-events: none;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: var(--phosphor-green);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            text-align: center;
+            outline: none;
+            text-shadow: 0 0 8px var(--phosphor-green);
+            letter-spacing: 0.1em;
+        }
+
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .monitor-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .crt-monitor {
+            background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+            border: 4px solid var(--metal);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow:
+                0 10px 40px rgba(0, 0, 0, 0.9),
+                inset 0 2px 0 rgba(255, 255, 255, 0.1),
+                inset 0 -2px 0 rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .screen-bezel {
+            background: var(--black);
+            border: 3px solid #000;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow:
+                inset 0 0 20px rgba(0, 0, 0, 0.9),
+                inset 0 0 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .crt-screen {
+            position: relative;
+            width: 100%;
+            height: 350px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow:
+                0 0 20px rgba(0, 255, 65, 0.3),
+                inset 0 0 30px rgba(0, 0, 0, 0.8);
+            transition: box-shadow 0.3s ease;
+        }
+
+        .color-display {
+            width: 100%;
+            height: 100%;
+            transition: background-color 0.1s ease;
+            position: relative;
+        }
+
+        /* CRT scanline effect */
+        .scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.15) 0px,
+                transparent 1px,
+                transparent 2px,
+                rgba(0, 0, 0, 0.15) 3px
+            );
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .scanline-sweep {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                transparent 0%,
+                rgba(255, 255, 255, 0.05) 50%,
+                transparent 100%
+            );
+            pointer-events: none;
+            z-index: 3;
+            animation: scanline 8s linear infinite;
+        }
+
+        /* CRT glow effect */
+        .crt-screen::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
+            pointer-events: none;
+            z-index: 4;
+        }
+
+        .color-bars {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 2px;
+            margin-top: 15px;
+            height: 30px;
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .color-bar {
+            height: 100%;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .color-bar:hover {
+            opacity: 0.8;
+            transform: scale(1.05);
+        }
+
+        .rgb-readout {
+            background: var(--display-bg);
+            border: 2px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.8);
+        }
+
+        .rgb-readout-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+            letter-spacing: 0.3em;
+            color: var(--phosphor-dim);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .rgb-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--phosphor-green);
+            text-shadow: 0 0 10px var(--phosphor-green);
+            letter-spacing: 0.15em;
+            text-align: center;
+        }
+
+        @media (max-width: 968px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+                letter-spacing: 0.2em;
+            }
+
+            .equipment-panel {
+                padding: 30px;
+            }
+
+            .crt-screen {
+                height: 250px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .header h1 {
+                font-size: 1.5rem;
+                letter-spacing: 0.15em;
+            }
+
+            .equipment-panel {
+                padding: 20px;
+            }
+
+            input[type="number"] {
+                font-size: 1.1rem;
+            }
+
+            .rgb-value {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>CHROMATIC</h1>
+        <div class="subtitle">RGB Calibrator v2.1</div>
+    </div>
+
+    <div class="equipment-panel">
+        <div class="screw-bottom-left"></div>
+        <div class="screw-bottom-right"></div>
+
+        <div class="container">
+            <div class="controls-section">
+                <div class="channel-control">
+                    <div class="channel-label">
+                        <div class="indicator red"></div>
+                        <span>Red</span>
+                        <span class="channel-id">CH-R</span>
+                    </div>
+                    <div class="fader-row">
+                        <div class="slider-container">
+                            <input type="range" id="redSlider" min="0" max="255" value="128">
+                        </div>
+                        <div class="value-display">
+                            <input type="number" id="redNumber" min="0" max="255" value="128">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="channel-control">
+                    <div class="channel-label">
+                        <div class="indicator green"></div>
+                        <span>Green</span>
+                        <span class="channel-id">CH-G</span>
+                    </div>
+                    <div class="fader-row">
+                        <div class="slider-container">
+                            <input type="range" id="greenSlider" min="0" max="255" value="128">
+                        </div>
+                        <div class="value-display">
+                            <input type="number" id="greenNumber" min="0" max="255" value="128">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="channel-control">
+                    <div class="channel-label">
+                        <div class="indicator blue"></div>
+                        <span>Blue</span>
+                        <span class="channel-id">CH-B</span>
+                    </div>
+                    <div class="fader-row">
+                        <div class="slider-container">
+                            <input type="range" id="blueSlider" min="0" max="255" value="128">
+                        </div>
+                        <div class="value-display">
+                            <input type="number" id="blueNumber" min="0" max="255" value="128">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="monitor-section">
+                <div class="crt-monitor">
+                    <div class="screen-bezel">
+                        <div class="crt-screen">
+                            <div class="color-display" id="preview"></div>
+                            <div class="scanlines"></div>
+                            <div class="scanline-sweep"></div>
+                        </div>
+                    </div>
+
+                    <div class="color-bars">
+                        <div class="color-bar" style="background: #fff;" data-r="255" data-g="255" data-b="255"></div>
+                        <div class="color-bar" style="background: #ff0;" data-r="255" data-g="255" data-b="0"></div>
+                        <div class="color-bar" style="background: #0ff;" data-r="0" data-g="255" data-b="255"></div>
+                        <div class="color-bar" style="background: #0f0;" data-r="0" data-g="255" data-b="0"></div>
+                        <div class="color-bar" style="background: #f0f;" data-r="255" data-g="0" data-b="255"></div>
+                        <div class="color-bar" style="background: #f00;" data-r="255" data-g="0" data-b="0"></div>
+                        <div class="color-bar" style="background: #00f;" data-r="0" data-g="0" data-b="255"></div>
+                        <div class="color-bar" style="background: #000;" data-r="0" data-g="0" data-b="0"></div>
+                    </div>
+                </div>
+
+                <div class="rgb-readout">
+                    <div class="rgb-readout-title">Output Signal</div>
+                    <div class="rgb-value" id="rgbDisplay">RGB(128, 128, 128)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get references to all inputs and displays
+        const redSlider = document.getElementById('redSlider');
+        const redNumber = document.getElementById('redNumber');
+        const greenSlider = document.getElementById('greenSlider');
+        const greenNumber = document.getElementById('greenNumber');
+        const blueSlider = document.getElementById('blueSlider');
+        const blueNumber = document.getElementById('blueNumber');
+        const preview = document.getElementById('preview');
+        const rgbDisplay = document.getElementById('rgbDisplay');
+
+        // Function to clamp values between 0 and 255
+        function clamp(value) {
+            return Math.max(0, Math.min(255, value));
+        }
+
+        // Function to update the preview color and display
+        function updateColor() {
+            const r = redSlider.value;
+            const g = greenSlider.value;
+            const b = blueSlider.value;
+
+            preview.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+            rgbDisplay.textContent = `RGB(${r}, ${g}, ${b})`;
+
+            // Update CRT glow based on brightness
+            const brightness = (parseInt(r) + parseInt(g) + parseInt(b)) / 3;
+            const glowIntensity = brightness / 255;
+            preview.parentElement.style.boxShadow = `
+                0 0 ${20 + glowIntensity * 30}px rgba(${r}, ${g}, ${b}, ${0.3 + glowIntensity * 0.4}),
+                inset 0 0 30px rgba(0, 0, 0, 0.8)
+            `;
+        }
+
+        // Slider event listeners - update number input and color
+        redSlider.addEventListener('input', () => {
+            redNumber.value = redSlider.value;
+            updateColor();
+        });
+
+        greenSlider.addEventListener('input', () => {
+            greenNumber.value = greenSlider.value;
+            updateColor();
+        });
+
+        blueSlider.addEventListener('input', () => {
+            blueNumber.value = blueSlider.value;
+            updateColor();
+        });
+
+        // Number input event listeners - validate, update slider, and color
+        redNumber.addEventListener('input', () => {
+            const value = clamp(parseInt(redNumber.value) || 0);
+            redNumber.value = value;
+            redSlider.value = value;
+            updateColor();
+        });
+
+        greenNumber.addEventListener('input', () => {
+            const value = clamp(parseInt(greenNumber.value) || 0);
+            greenNumber.value = value;
+            greenSlider.value = value;
+            updateColor();
+        });
+
+        blueNumber.addEventListener('input', () => {
+            const value = clamp(parseInt(blueNumber.value) || 0);
+            blueNumber.value = value;
+            blueSlider.value = value;
+            updateColor();
+        });
+
+        // Color bar click handlers
+        const colorBars = document.querySelectorAll('.color-bar');
+        colorBars.forEach(bar => {
+            bar.addEventListener('click', () => {
+                const r = bar.dataset.r;
+                const g = bar.dataset.g;
+                const b = bar.dataset.b;
+
+                // Update sliders
+                redSlider.value = r;
+                greenSlider.value = g;
+                blueSlider.value = b;
+
+                // Update number inputs
+                redNumber.value = r;
+                greenNumber.value = g;
+                blueNumber.value = b;
+
+                // Update color display
+                updateColor();
+            });
+        });
+
+        // Initialize color on page load
+        updateColor();
+    </script>
+</body>
+</html>
